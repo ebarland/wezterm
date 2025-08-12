@@ -2,41 +2,74 @@
 local wezterm = require 'wezterm'
 local mux     = wezterm.mux
 
--- Configuration builder
 local config  = wezterm.config_builder()
 
--- Automatically maximize on startup (windowed-fullscreen)
+-- === Center + custom margins on the active screen ===
+-- Usage:
+--   center_with_margin(gui, 60)                      -- uniform 60 on all sides
+--   center_with_margin(gui, { all = 60, bottom = 84 }) -- 60 everywhere, 84 bottom
+--   center_with_margin(gui, { top=50, right=60, bottom=90, left=60 })
+local function center_with_margin(gui_window, margins)
+	-- normalize margins
+	local m = { top = 0, right = 0, bottom = 0, left = 0 }
+	if type(margins) == "number" then
+		m.top, m.right, m.bottom, m.left = margins, margins, margins, margins
+	elseif type(margins) == "table" then
+		local all = margins.all or margins[1]
+		if all then m.top, m.right, m.bottom, m.left = all, all, all, all end
+		m.top    = margins.top or m.top
+		m.right  = margins.right or m.right
+		m.bottom = margins.bottom or m.bottom
+		m.left   = margins.left or m.left
+	else
+		-- default uniform margin if nothing passed
+		m.top, m.right, m.bottom, m.left = 60, 60, 60, 60
+	end
+
+	local screens  = wezterm.gui.screens()
+	local active   = screens.active
+
+	local target_w = math.max(200, active.width - (m.left + m.right))
+	local target_h = math.max(200, active.height - (m.top + m.bottom))
+	local target_x = active.x + m.left
+	local target_y = active.y + m.top
+
+	gui_window:set_inner_size(target_w, target_h)
+	gui_window:set_position(target_x, target_y)
+end
+
 wezterm.on("gui-startup", function(cmd)
-	-- Spawn the window and retrieve the mux window object
 	local _, _, window = mux.spawn_window(cmd or {})
-	-- Maximize the GUI window (not exclusive fullscreen)
-	window:gui_window():maximize()
+	local gui = window:gui_window()
+	-- uniform margins + a larger bottom margin to taste:
+	center_with_margin(gui, { all = 35, bottom = 65 })
 end)
 
--- This is where you actually apply your config choices.
-
--- For example, changing the initial geometry for new windows:
-config.initial_cols              = 120
-config.initial_rows              = 28
-
-config.window_padding = {
-	left = 50,
-	right = 50,
-	top = 50,
-	bottom = 0
+config.window_padding            = {
+	left = 25, right = 25, top = 25, bottom = 0
 }
 
--- config.font                     = wezterm.font("JetBrainsMono NF")
+-- Optional: quick recenter with the same margins (CTRL+SHIFT+M)
+config.keys                      = {
+	{
+		key = "M",
+		mods = "CTRL|SHIFT",
+		action = wezterm.action_callback(function(win, _)
+			center_with_margin(win:gui_window(), { all = 35, bottom = 65 })
+		end),
+	},
+}
 
--- Hide titlebar and borders for a clean look; keep resize handle
+-- === Your existing prefs ===
+config.font                      = wezterm.font_with_fallback({
+	"JetBrainsMono Nerd Font",
+	"Symbols Nerd Font",
+	"Noto Color Emoji"
+})
 config.window_decorations        = "RESIZE"
 config.enable_tab_bar            = false
--- or, changing the font size and color scheme.
 config.font_size                 = 10
--- config.color_scheme             = 'Dracula'
--- config.color_scheme              = 'Gruvbox Material (Gogh)'
-config.color_scheme 			 = "Catppuccin Mocha" -- or Macchiato, Frappe, Latte
+config.color_scheme              = "Dracula"
 config.window_background_opacity = 0.97
 
--- Finally, return the configuration to wezterm:
 return config
