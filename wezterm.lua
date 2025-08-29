@@ -38,11 +38,18 @@ local function center_with_margin(gui_window, margins)
 	gui_window:set_position(target_x, target_y)
 end
 
+-- wezterm.on("gui-startup", function(cmd)
+-- 	local _, _, window = mux.spawn_window(cmd or {})
+-- 	local gui = window:gui_window()
+-- 	-- uniform margins + a larger bottom margin to taste:
+-- 	center_with_margin(gui, { all = 35, bottom = 70 })
+-- end)
+
+
 wezterm.on("gui-startup", function(cmd)
 	local _, _, window = mux.spawn_window(cmd or {})
 	local gui = window:gui_window()
-	-- uniform margins + a larger bottom margin to taste:
-	center_with_margin(gui, { all = 35, bottom = 65 })
+	gui:maximize()
 end)
 
 config.window_padding            = {
@@ -55,21 +62,21 @@ config.keys                      = {
 		key = "M",
 		mods = "CTRL|SHIFT",
 		action = wezterm.action_callback(function(win, _)
-			center_with_margin(win:gui_window(), { all = 35, bottom = 65 })
+			center_with_margin(win:gui_window(), { all = 35, bottom = 70 })
 		end),
 	},
 }
 
--- === Your existing prefs ===
 config.font                      = wezterm.font_with_fallback({
-	"JetBrainsMono Nerd Font",
-	"Symbols Nerd Font",
-	"Noto Color Emoji"
+	"JetBrains Mono",         -- your main font
+	"Symbols Nerd Font Mono", -- tiny package with devicons/codicons, etc.
+	"Noto Color Emoji",       -- optional
 })
+
 config.window_decorations        = "RESIZE"
 config.enable_tab_bar            = false
 config.font_size                 = 10
 config.color_scheme              = "Dracula"
-config.window_background_opacity = 0.97
+-- config.window_background_opacity = 0.97
 
 return config
